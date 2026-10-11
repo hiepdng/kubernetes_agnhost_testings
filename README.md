@@ -249,6 +249,15 @@
   ```bash
   kubectl get svc,pods -o wide
   ```
+  - Verify via Port-Forwarding:
+  ```bash
+  kubectl port-forward svc/guestbook-ui 8080:80
+  curl http://localhost:8080
+  ```
+
+
+
+
 
 <br>
 <br>
