@@ -246,13 +246,41 @@
   curl -sL ${guestbook}/agnhost-replica-deployment.yaml.in | sed ${sed_expr} | kubectl create -f -
   ```
   - Check Pod and Service Status:  
-  ```bash
-  kubectl get svc,pods -o wide
+  ```python
+  $ kubectl get svc,pods -o wide
+  NAME                                   READY   STATUS    RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+  pod/agnhost-primary-f5d5b56d7-lhbk5    1/1     Running   0          69m   10.244.0.64   minikube   <none>           <none>
+  pod/agnhost-replica-5ccbf4c899-59bl2   1/1     Running   0          69m   10.244.0.65   minikube   <none>           <none>
+  pod/agnhost-replica-5ccbf4c899-5x2c2   1/1     Running   0          69m   10.244.0.66   minikube   <none>           <none>
+  pod/frontend-fdbc844f5-88v8h           1/1     Running   0          69m   10.244.0.63   minikube   <none>           <none>
+  pod/frontend-fdbc844f5-r5r8x           1/1     Running   0          69m   10.244.0.62   minikube   <none>           <none>
+  pod/frontend-fdbc844f5-x5skg           1/1     Running   0          69m   10.244.0.61   minikube   <none>           <none>
+
+  NAME                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+  service/agnhost-primary   ClusterIP   10.109.91.40     <none>        6379/TCP   69m   app=agnhost,role=primary,tier=backend
+  service/agnhost-replica   ClusterIP   10.97.33.162     <none>        6379/TCP   69m   app=agnhost,role=replica,tier=backend
+  service/frontend          ClusterIP   10.103.216.147   <none>        80/TCP     69m   app=guestbook,tier=frontend
   ```
   - Verify via Port-Forwarding:
   ```bash
-  kubectl port-forward svc/guestbook-ui 8080:80
-  curl http://localhost:8080
+  kubectl port-forward service/frontend 8088:80
+  curl http://localhost:8088
+  ```
+  - Manual Verification:
+  ```bash
+  $ curl "http://agnhost-primary-svc:80/register?endpoint=http://<replica-pod-ip>:<backend-port>"
+
+  $ curl "http://127.0.0.1:8088/register?endpoint=http://10.244.0.65:6379"
+  {"data":{}}
+  
+  $ curl "http://127.0.0.1:8088/get?endpoint=http://10.244.0.65:6379"
+  {"data":{}}
+  
+  $ curl "http://127.0.0.1:8088/set?endpoint=http://10.244.0.65:6379"
+  cannot set with empty key.
+  
+  $ curl "http://127.0.0.1:8088/guestbook?endpoint=http://10.244.0.65:6379"
+  unsupported cmd: ''
   ```
 
 
