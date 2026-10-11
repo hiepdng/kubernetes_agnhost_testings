@@ -283,6 +283,87 @@
   $ curl "http://127.0.0.1:8088/guestbook?endpoint=http://10.244.0.65:6379"
   unsupported cmd: ''
   ```
+<br>
+
+- **inclusterclient:** Periodically poll the Kubernetes "/healthz" endpoint  
+  - Create and run test-agnhost pod:  
+  ```bash
+    kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  ```
+  - The subcommand will periodically poll the Kubernetes /healthz endpoint using the in-cluster config. Because of this, the subcommand is meant to be run inside of a Kubernetes pod. It can also be used to validate token rotation.
+  ```python
+  $ kubectl exec test-agnhost -- /agnhost inclusterclient [--poll-interval <poll-interval>]
+  $ kubectl exec test-agnhost -- /agnhost inclusterclient --poll-interval 30
+  I1011 14:52:44.151095      16 main.go:61] started
+  I1011 14:53:14.240245      16 main.go:79] calling /healthz
+  I1011 14:53:14.240773      16 main.go:96] authz_header=4mZ0nhGkqCIKnpdHTg4rDaReuMiy-46KhMQNoVo2AI0
+  I1011 14:53:44.240319      16 main.go:79] calling /healthz
+  I1011 14:53:44.240628      16 main.go:96] authz_header=4mZ0nhGkqCIKnpdHTg4rDaReuMiy-46KhMQNoVo2AI0
+  I1011 14:54:14.240142      16 main.go:79] calling /healthz
+  I1011 14:54:14.240599      16 main.go:96] authz_header=4mZ0nhGkqCIKnpdHTg4rDaReuMiy-46KhMQNoVo2AI0
+  ```
+<br>
+
+liveness                              Starts a server that is alive for 10 seconds
+- **liveness:** Starts a server that is alive for 10 seconds    
+  - Create a manifest file liveness.yaml to test liveness:  
+  ```yaml
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      test: liveness
+    name: liveness-http
+  spec:
+    containers:
+    - name: liveness
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      args:
+      - liveness
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+          httpHeaders:
+          - name: Custom-Header
+            value: Awesome
+        initialDelaySeconds: 3
+        periodSeconds: 3
+  ```
+  - Apply to create the pod:
+  ```python
+  kubectl apply -f liveness.yaml
+  ```
+  - Checking:
+    The Agnhost liveness will starts a simple server that is alive for 10 seconds, then reports unhealthy for the rest of its (hopefully) short existence.
+    - For the first 10 seconds, /healthz returns 200 OK ("ok").
+    - 10 seconds, /healthz starts returning 500 Internal Server Error.
+    - httpGet: Sends a request to path /healthz on port 8080.
+    - initialDelaySeconds: 3: Waits 3 seconds after the container starts before running the first check.
+    - periodSeconds: 3: Repeats the check every 3 seconds.
+    
+    **Result:** Once the container runs past 10 seconds, the liveness check fails with a 500 status code, and Kubernetes automatically restarts the container.
+  ```python
+  $ kubectl get pods liveness-http -w
+  NAME            READY   STATUS    RESTARTS   AGE
+  liveness-http   1/1     Running   0          3s
+  liveness-http   1/1     Running   1 (2s ago)   20s
+  liveness-http   1/1     Running   2 (1s ago)   37s
+  liveness-http   1/1     Running   3 (1s ago)   55s
+  liveness-http   0/1     CrashLoopBackOff   3 (1s ago)   73s
+  liveness-http   1/1     Running            4 (23s ago)   95s
+  liveness-http   0/1     CrashLoopBackOff   4 (1s ago)    112s
+  liveness-http   1/1     Running            5 (49s ago)   2m40s
+  liveness-http   0/1     CrashLoopBackOff   5 (2s ago)    2m59s
+  liveness-http   1/1     Running            6 (90s ago)   4m27s
+  ```
+<br>
+
+- **logs-generator:** Outputs lines of logs to stdout uniformly    
+  - Create and run test-agnhost pod:  
+  ```bash
+    kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  ```
 
 
 
