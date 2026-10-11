@@ -20,8 +20,8 @@
 
 - #### Agnhost Usage:
   ```python
-  $ kubectl run test-client --image=registry.k8s.io/e2e-test-images/agnhost:2.53
-  $ kubectl exec pod/test-client  -- /agnhost  --help
+  $ kubectl run hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  $ kubectl exec pod/hello-node  -- /agnhost  --help
   Usage:
   app [command]
 
@@ -230,23 +230,25 @@
 
                              
 - **guestbook:** Creates a HTTP server with various endpoints representing a guestbook app    
-  - Create and run grpc-test pod:  
+  - Create services and pods:  
   ```bash
   guestbook="https://raw.githubusercontent.com/kubernetes/kubernetes/master/test/e2e/testing-manifests/guestbook"
   sed_expr="s|{{.AgnhostImage}}|registry.k8s.io/e2e-test-images/agnhost:2.40|"
 
   # create the services.
-  curl -sL ${guestbook}/frontend-service.yaml | kubectl create -f
-  curl -sL ${guestbook}/agnhost-primary-service.yaml | kubectl create -f
-  curl -sL ${guestbook}/agnhost-replica-service.yaml | kubectl create -f
+  curl -sL ${guestbook}/frontend-service.yaml | kubectl create -f - 
+  curl -sL ${guestbook}/agnhost-primary-service.yaml | kubectl create -f - 
+  curl -sL ${guestbook}/agnhost-replica-service.yaml | kubectl create -f - 
 
   # create the deployments.
   curl -sL ${guestbook}/frontend-deployment.yaml.in | sed ${sed_expr} | kubectl create -f -
   curl -sL ${guestbook}/agnhost-primary-deployment.yaml.in | sed ${sed_expr} | kubectl create -f -
   curl -sL ${guestbook}/agnhost-replica-deployment.yaml.in | sed ${sed_expr} | kubectl create -f -
   ```
-
-
+  - Check Pod and Service Status:  
+  ```bash
+  kubectl get svc,pods -o wide
+  ```
 
 <br>
 <br>
