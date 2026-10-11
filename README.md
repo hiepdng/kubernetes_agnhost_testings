@@ -360,9 +360,24 @@ liveness                              Starts a server that is alive for 10 secon
 <br>
 
 - **logs-generator:** Outputs lines of logs to stdout uniformly    
-  - Create and run test-agnhost pod:  
+  - Test in Kubernetes:  
+    Deploy it as a single-run Pod to test your cluster log collectors (such as Fluentd, Fluent Bit, or Promtail):  
   ```bash
-    kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  kubectl run test-logs-gen \
+  --image=registry.k8s.io/e2e-test-images/agnhost:2.40 \
+  --restart=Never \
+  -- logs-generator --log-lines-total 100 --run-duration 10s
+  ```
+    Where:  
+    • --log-lines-total (or -t): Total number of log lines to generate.  
+    • --run-duration (or -d): How long the generation should last, specified in a duration format (e.g., 1s, 10s, 1m).  
+    Each generated line is roughly 100 bytes long and follows this standardized format:
+    2000-12-31T12:59:59Z <id> <method> /api/v1/namespaces/<namespace>/endpoints/<random_string> <random_number>
+  
+  - Verify the Logs:  
+    Once the Pod is running or completed, check the generated output using kubectl logs:
+  ```python
+    $ kubectl logs test-logs-gen
   ```
 
 
