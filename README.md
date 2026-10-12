@@ -456,73 +456,19 @@ liveness                              Starts a server that is alive for 10 secon
 
   $ kubectl get all -o wide
   NAME               READY   STATUS    RESTARTS   AGE   IP             NODE       NOMINATED NODE   READINESS GATES
-  pod/hello-node     1/1     Running   0          6s    10.244.0.108   minikube   <none>           <none>
   pod/test-agnhost   1/1     Running   0          19s   10.244.0.107   minikube   <none>           <none>
   ```
   - Runners can be executed into two different ways, the command-line or via an HTTP request:
-    - Command-line:
-    ```bash
-    $ kubectl exec test-agnhost -- /agnhost net --serve :8887
-    I1012 04:34:00.171841      16 log.go:245] main.go:119: Running server on :8887
-    I1012 04:34:23.716607      16 log.go:245] main.go:153: handleRunRequest {POST /run/nat-closewait-server HTTP/1.1 1 1 map[Accept:[*/*] Content-Length:[33] Content-Type:[application/x-www-form-urlencoded] User-Agent:[curl/8.9.0]] 0xc0004f6e40 <nil> 33 [] false localhost:8887 map[] map[] <nil> map[] [::1]:33070 /run/nat-closewait-server <nil> <nil> <nil> 0xc00022a9b0 0xc0004f4ae0 [] map[]}
-    I1012 04:34:23.716669      16 log.go:245] main.go:140: Options: &{LocalAddr:10.244.0.113:9999 PostFinTimeoutSeconds:0}
-    I1012 04:34:43.634318      16 log.go:245] main.go:153: handleRunRequest {POST /run/nat-closewait-client HTTP/1.1 1 1 map[Accept:[*/*] Content-Length:[33] Content-Type:[application/x-www-form-urlencoded] User-Agent:[curl/8.9.0]] 0xc0004f6f40 <nil> 33 [] false localhost:8887 map[] map[] <nil> map[] [::1]:37334 /run/nat-closewait-client <nil> <nil> <nil> 0xc00022aaa0 0xc0004f4ae0 [] map[]}
-    I1012 04:34:43.634431      16 log.go:245] main.go:140: Options: &{RemoteAddr: TimeoutSeconds:0 PostFinTimeoutSeconds:0 LeakConnection:false}
-
-
-    $ kubectl exec test-agnhost -- curl -v -X POST localhost:8887/run/nat-closewait-server   -d '{"LocalAddr":"10.244.0.113:9999"}'
-    Note: Unnecessary use of -X or --request, POST is already inferred.
-    * Host localhost:8887 was resolved.
-    * IPv6: ::1
-    * IPv4: 127.0.0.1
-      % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-      0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:8887...
-    * Connected to localhost (::1) port 8887
-    > POST /run/nat-closewait-server HTTP/1.1
-    > Host: localhost:8887
-    > User-Agent: curl/8.9.0
-    > Accept: */*
-    > Content-Length: 33
-    > Content-Type: application/x-www-form-urlencoded
-    > 
-    } [33 bytes data]
-    * upload completely sent off: 33 bytes
-    100    33    0     0    0    33      0      0 --:--:--  0:02:59 --:--:--     0< HTTP/1.1 200 OK
-    < Date: Mon, 12 Oct 2026 04:37:23 GMT
-    < Content-Length: 231
-    < Content-Type: text/plain; charset=utf-8
-    < 
-    { [231 bytes data]
-    100   264  100   231    0    33      1      0  0:03:51  0:02:59  0:00:52    54
-    * Connection #0 to host localhost left intact
-    ok
-    output:
-
-    # closewait.go:75: Run &{10.244.0.113:9999 0}
-    # closewait.go:88: Server listening on 10.244.0.113:9999
-    # closewait.go:96: Client connected
-    # closewait.go:105: Server sent FIN, waiting 0 seconds
-    # closewait.go:110: Done
-
-
-    $  kubectl exec test-agnhost -- /agnhost net --runner nat-closewait-client --options '{"RemoteAddr":"10.244.0.113:9999"}'
-    I1012 04:37:23.401210      56 log.go:245] main.go:140: Options: &{RemoteAddr:10.244.0.113:9999 TimeoutSeconds:0 PostFinTimeoutSeconds:0 LeakConnection:false}
-    output:
-
-    # closewait.go:151: Run &{10.244.0.113:9999 0 0 false}
-    # closewait.go:166: Connected to server
-    # closewait.go:184: Server has half-closed the connection, waiting 0 seconds
-    # closewait.go:195: Done
-    ```
-    - HTTP server:
+  
+  • Start the HTTP background server:  
   ```bash
   $ kubectl exec test-agnhost -- /agnhost net --serve 10.244.0.110:8889
   I1012 04:06:06.056502      16 log.go:245] main.go:119: Running server on 10.244.0.107:8889
   I1012 04:06:17.304524      16 log.go:245] main.go:153: handleRunRequest {POST /run/nat-closewait-server HTTP/1.1 1 1 map[Accept:[*/*] Content-Length:[30] Content-Type:[application/x-www-form-urlencoded] User-Agent:[curl/8.9.0]] 0xc000051780 <nil> 30 [] false 10.244.0.107:8889 map[] map[] <nil> map[] 10.244.0.107:47362 /run/nat-closewait-server <nil> <nil> <nil> 0xc0004006e0 0xc000177380 [] map[]}
   I1012 04:06:17.304606      16 log.go:245] main.go:140: Options: &{LocalAddr:127.0.0.1:9999 PostFinTimeoutSeconds:0}
-
-
+  ```
+  • Trigger a runner using a POST request:
+  ```bash
   $ kubectl exec test-agnhost -- curl -v -X POST 10.244.0.107:8889/run/nat-closewait-server   -d '{"LocalAddr":"127.0.0.1:9999"}'
   Note: Unnecessary use of -X or --request, POST is already inferred.
     % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
@@ -554,8 +500,9 @@ liveness                              Starts a server that is alive for 10 secon
   { [225 bytes data]
   100   255  100   225  100    30     44      5  0:00:06  0:00:05  0:00:01    55
   * Connection #0 to host 10.244.0.107 left intact
-
-
+  ```
+  • NAT Close-Wait Client Test:    
+  ```bash
   $ kubectl exec test-agnhost -- /agnhost net --runner nat-closewait-client --options '{"RemoteAddr":"127.0.0.1:9999"}'
   I1012 03:56:43.714083     208 log.go:245] main.go:140: Options: &{RemoteAddr:127.0.0.1:9999 TimeoutSeconds:0 PostFinTimeoutSeconds:0 LeakConnection:false}
   output:
