@@ -618,6 +618,56 @@ liveness                              Starts a server that is alive for 10 secon
   $ kubectl exec client-pod -- curl -sG "http://10.244.0.117:8080/write"
   {"Hostname":"test-agnhost"}
   ```
+<br>
+
+- **no-snat-test:** Creates the /checknosnat and /whoami endpoints    
+  - Create and run test-agnhost pod and client-pod pod:  
+  ```python
+  $ kubectl run test-agnhost \
+      --image=registry.k8s.io/e2e-test-images/agnhost:2.40 \
+      --restart=Never \
+      --env "POD_IP=10.244.0.121" \
+      --env "NODE_IP=192.168.49.2" \
+      -- no-snat-test --port 2222
+  $ kubectl run client-pod --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+
+  $ kubectl get all -o wide
+  NAME               READY   STATUS    RESTARTS   AGE   IP             NODE       NOMINATED NODE   READINESS GATES
+  pod/client-pod     1/1     Running   0          7s    10.244.0.122   minikube   <none>           <none>
+  pod/test-agnhost   1/1     Running   0          17s   10.244.0.121   minikube   <none>           <none>
+
+  $ minikube ip
+  192.168.49.2
+  ```
+  - Testing
+  ```python
+  #/whoami: returns the request's IP address.
+  $ kubectl exec client-pod -- curl -sG "http://10.244.0.121:2222/whoami"
+  10.244.0.122:59792
+
+  #/checknosnat: Verify no-SNAT behavior across target IPs: 
+  $ kubectl exec -it client-pod -- curl -s "http://10.244.0.121:2222/checknosnat?ips=10.244.0.121:2222"
+  $
+  ```
+<br>
+
+- **no-snat-test-proxy:** Creates a proxy for the /checknosnat endpoint    
+  - Create and run test-agnhost pod and client-pod pod:  
+  ```python
+  $ kubectl run test-agnhost \
+      --image=registry.k8s.io/e2e-test-images/agnhost:2.40 \
+      --restart=Never \
+      --env "POD_IP=10.244.0.121" \
+      --env "NODE_IP=192.168.49.2" \
+      -- no-snat-test --port 2222
+  $ kubectl run client-pod --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  ```
+
+  
+
+
+
+
 
 
 
