@@ -654,13 +654,22 @@ liveness                              Starts a server that is alive for 10 secon
 - **no-snat-test-proxy:** Creates a proxy for the /checknosnat endpoint    
   - Create and run test-agnhost pod and client-pod pod:  
   ```python
-  $ kubectl run test-agnhost \
-      --image=registry.k8s.io/e2e-test-images/agnhost:2.40 \
-      --restart=Never \
-      --env "POD_IP=10.244.0.121" \
-      --env "NODE_IP=192.168.49.2" \
-      -- no-snat-test --port 2222
+  $ kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
   $ kubectl run client-pod --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+
+  $ kubectl get all -o wide
+  NAME               READY   STATUS    RESTARTS   AGE   IP             NODE       NOMINATED NODE   READINESS GATES
+  pod/client-pod     1/1     Running   0          21s   10.244.0.124   minikube   <none>           <none>
+  pod/test-agnhost   1/1     Running   0          33s   10.244.0.123   minikube   <none>           <none>
+  ```
+  - Run the no-snat-test-proxy pod:  
+  ```bash
+  kubectl exec test-agnhost -- /agnhost no-snat-test-proxy --port 3333
+  ```
+  - Send a Test Request:
+  ```python
+  $ kubectl exec -it client-pod -- curl "http://10.244.0.123:3333/checknosnat?target=10.244.0.123:3333"
+  error querying "http:///checknosnat?ips=", err: Get "http:///checknosnat?ips=": http: no Host in request URL
   ```
 
   
