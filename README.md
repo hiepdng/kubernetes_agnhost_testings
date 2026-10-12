@@ -288,7 +288,7 @@
 - **inclusterclient:** Periodically poll the Kubernetes "/healthz" endpoint  
   - Create and run test-agnhost pod:  
   ```bash
-    kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
   ```
   - The subcommand will periodically poll the Kubernetes /healthz endpoint using the in-cluster config. Because of this, the subcommand is meant to be run inside of a Kubernetes pod. It can also be used to validate token rotation.
   ```python
@@ -359,7 +359,10 @@ liveness                              Starts a server that is alive for 10 secon
   ```
 <br>
 
-- **logs-generator:** Outputs lines of logs to stdout uniformly    
+- **logs-generator:** Outputs lines of logs to stdout uniformly  
+  The logs-generator subcommand in the agnhost CLI tool is designed to simulate synthetic API log workloads for Kubernetes end-to-end (e2e) testing and cluster logging verification.
+  
+  It generates predictable, structured log streams to test how well a cluster handles log ingestion, rotation, aggregation, and throughput management without requiring a live, complex application workload.  
   - Test in Kubernetes:  
     Deploy it as a single-run Pod to test your cluster log collectors (such as Fluentd, Fluent Bit, or Promtail):  
   ```bash
@@ -370,15 +373,85 @@ liveness                              Starts a server that is alive for 10 secon
   ```
     Where:  
     • --log-lines-total (or -t): Total number of log lines to generate.  
-    • --run-duration (or -d): How long the generation should last, specified in a duration format (e.g., 1s, 10s, 1m).  
-    Each generated line is roughly 100 bytes long and follows this standardized format:
+    • --run-duration (or -d): How long the generation should last, specified in a Go duration format (e.g., 1s, 10s, 1m).  
+    Each generated line is roughly 100 bytes long and follows this standardized format:  
     2000-12-31T12:59:59Z <id> <method> /api/v1/namespaces/<namespace>/endpoints/<random_string> <random_number>
   
   - Verify the Logs:  
     Once the Pod is running or completed, check the generated output using kubectl logs:
   ```python
-    $ kubectl logs test-logs-gen
+  $ kubectl logs test-logs-gen
+  I1011 23:17:21.444342       1 logs_generator.go:76] 0 POST /api/v1/namespaces/default/pods/fv72 222
+  I1011 23:17:22.444585       1 logs_generator.go:76] 1 GET /api/v1/namespaces/kube-system/pods/qgvc 464
+  I1011 23:17:23.445000       1 logs_generator.go:76] 2 GET /api/v1/namespaces/default/pods/pqpz 236
+  I1011 23:17:24.444856       1 logs_generator.go:76] 3 GET /api/v1/namespaces/default/pods/27h4 451
+  I1011 23:17:25.444927       1 logs_generator.go:76] 4 PUT /api/v1/namespaces/ns/pods/hfbr 225
+  I1011 23:17:26.444924       1 logs_generator.go:76] 5 GET /api/v1/namespaces/default/pods/mks9 559
+  I1011 23:17:27.444808       1 logs_generator.go:76] 6 POST /api/v1/namespaces/kube-system/pods/ldfk 489
+  I1011 23:17:28.444868       1 logs_generator.go:76] 7 GET /api/v1/namespaces/kube-system/pods/t44c 287
+  I1011 23:17:29.444880       1 logs_generator.go:76] 8 GET /api/v1/namespaces/default/pods/n76 485
+  I1011 23:17:30.444865       1 logs_generator.go:76] 9 GET /api/v1/namespaces/ns/pods/4xcs 225
   ```
+<br>
+
+- **mounttest:** Creates files with given permissions and outputs FS type, owner, mode, permissions, contents of files    
+  The mounttest subcommand can be used to create files with various permissions, read files, and output file system type, mode, owner, and permissions for any given file.
+
+  The subcommand can accept the following flags:  
+  • fs_type: Path to print the FS type for.  
+  • file_mode: Path to print the mode bits of.  
+  • file_perm: Path to print the perms of.  
+  • file_owner: Path to print the owning UID and GID of.  
+  • new_file_0644: Path to write to and read from with perm 0644.  
+  • new_file_0666: Path to write to and read from with perm 0666.  
+  • new_file_0660: Path to write to and read from with perm 0660.  
+  • new_file_0777: Path to write to and read from with perm 0777.  
+  • file_content: Path to read the file content from.  
+  • file_content_in_loop: Path to read the file content in loop from.  
+  • retry_time (default: 180): Retry time during the loop.  
+  • break_on_expected_content (default: true): Break out of loop on expected content (use with --file_content_in_loop flag only).  
+
+  - Usage:
+  ```bash
+  kubectl exec test-agnhost -- /agnhost mounttest \
+        [--fs_type <path>] [--file_mode <path>] [--file_perm <path>] [--file_owner <path>] \
+        [--new_file_0644 <path>] [--new_file_0666 <path>] [--new_file_0660 <path>] [--new_file_0777 <path>] \
+        [--file_content <path>] [--file_content_in_loop <path>] \
+        [--retry_time <seconds>] [--break_on_expected_content <true_or_false>]
+  ```
+  - Quick Test:
+  ```yaml
+  $ kubectl run test-mount --image=registry.k8s.io/e2e-test-images/agnhost:2.58 --restart=Never -- mounttest \
+      --new_file_0644=/tmp/test.txt --file_mode=/tmp/test.txt
+  $ kubectl logs test-mount
+  mode of file "/tmp/test.txt": -rw-r--r--
+
+  $ kubectl run test-mount --image=registry.k8s.io/e2e-test-images/agnhost:2.58 --restart=Never -- mounttest \
+     --fs_type="/mnt" --file_mode="/mnt/test.txt" --file_perm="/mnt/test.txt" \
+     --file_owner="/mnt/test.txt" --new_file_0777="/mnt/test.txt" --file_content="/mnt/test.txt" \
+     --file_content_in_loop="/mnt/test.txt"
+  $ kubectl logs test-mount
+  mount type of "/mnt": 2035054128
+  content of file "/mnt/test.txt": mount-tester new file
+
+  mode of file "/mnt/test.txt": -rwxrwxrwx
+  perms of file "/mnt/test.txt": -rwxrwxrwx
+  owner UID of "/mnt/test.txt": 0
+  owner GID of "/mnt/test.txt": 0
+  content of file "/mnt/test.txt": mount-tester new file
+
+  content of file "/mnt/test.txt": mount-tester new file
+  ```
+<br>
+
+- **net:** Creates webserver or runner for various networking tests  
+  - Create and run test-agnhost pod:  
+  ```bash
+  kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+
+
+
+
 
 
 
