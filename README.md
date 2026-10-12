@@ -512,11 +512,68 @@ liveness                              Starts a server that is alive for 10 secon
   # closewait.go:184: Server has half-closed the connection, waiting 0 seconds
   # closewait.go:195: Done
   ```
+<br>
 
+- **netexec:** Creates HTTP(S), UDP, and (optionally) SCTP servers with various endpoints    
+  - Create and run test-agnhost pod and client-pod pod:  
+  ```python
+  $ kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  $ kubectl run client-pod --image=registry.k8s.io/e2e-test-images/agnhost:2.53
 
+  $ kubectl get all -o wide
+  NAME               READY   STATUS    RESTARTS   AGE   IP             NODE       NOMINATED NODE   READINESS GATES
+  pod/client-pod     1/1     Running   0          8s    10.244.0.116   minikube   <none>           <none>
+  pod/test-agnhost   1/1     Running   0          79m   10.244.0.114   minikube   <none>           <none>
+  ```
+  - Start the netexec Server: listening on port 8080  
+  ```bash
+  kubectl exec test-agnhost  -- /agnhost netexec --http-port=8080 --udp-port=8080
+  ```
+  - Test Using Core Endpoints:  
+    Once the server is up, you can test connectivity from another pod, a service, or via kubectl exec using its built-in endpoints
+    
+  • Test Base Connectivity: Returns the request's timestamp.  
+  ```python
+  $ kubectl exec test-agnhost -- curl http://10.244.0.114:8080/
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  100    60  100    60    0     0  63829      0 --:--:-- --:--:-- --:--:-- 60000
+  NOW: 2026-10-12 13:40:53.139295775 +0000 UTC m=+82.214093959
+  ```
+  • Test Client IP Tracking: Returns the IP address of the client making the request (useful for testing source IP preservation or load balancer behavior).
+  ```python
+  $ kubectl exec client-pod -- curl http://10.244.0.114:8080/clientip
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                   Dload  Upload   Total   Spent    Left  Speed
+  100    18  100    18    0     0   9278      0 --:--:-- --:--:-- --:--:-- 18000
+  10.244.0.116:60506
+  ```
+  • Test Header Forwarding: Returns the full request header or a specific key (useful for validating Ingress controller proxy headers).
+  ```python
+  $ kubectl exec client-pod -- curl http://10.244.0.114:8080/header?key=X-Forwarded-For
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                   Dload  Upload   Total   Spent    Left  Speed
+    0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  ```
+  • Outbound Test (The /dial Endpoint):
+  The /dial endpoint allows you to command the agnhost pod to attempt connection to an external or internal host and port. It returns a JSON package detailing successes or errors.
+  ```python
+  $ kubectl exec client-pod -- curl "http://10.244.0.114:8080/dial?host=kubernetes.default.svc&port=443&protocol=tcp&request=GET"
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                   Dload  Upload   Total   Spent    Left  Speed
+    0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0unsupported protocol. tcp
+  100    26  100    26    0     0  26859      0 --:--:-- --:--:-- --:--:-- 26000
+  ```
+  • Other testings:
+  ```python
+  # Return hostname
+  $ kubectl exec client-pod -- curl -s "http://10.244.0.114:8080/hostname"
+  test-agnhost
 
-
-
+  #Execute a shell command
+  $ kubectl exec client-pod -- curl -s  "http://10.244.0.114:8080/shell?cmd=whoami"
+  {"output":"root\n"}
+  ```
 
 
 
