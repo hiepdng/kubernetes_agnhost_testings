@@ -687,35 +687,7 @@ liveness                              Starts a server that is alive for 10 secon
 <br>
 <br>
   
-  ```
-  kubectl run  hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.53 --port=8080 -- netexec
-  kubectl run  hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.53 -- netexec --http-port=8080
-  kubectl create deployment hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.53
-  kubectl expose deployment hello-node --type=LoadBalancer --port=8080
-
-  kubectl create deployment hiep-test --image=registry.k8s.io/e2e-test-images/agnhost:2.53 --port=8080 --replicas=2  -- /agnhost netexec --http-port=8080
-  kubectl run agnhost-backend --image=registry.k8s.io/e2e-test-images/agnhost:2.53 --port=8080 -- netexec --http-port=8080
-  kubectl expose  pod/agnhost-backend --port=8080 --target-port=8080
-  ```
-  ```python
-
-  ```
-
-  ```
-  kubectl get all
-  kubectl exec -it <pod-name> -- bash          #go inside agnhost:2.53 image os
-  
-  kubectl exec <pod-name> -- /agnhost --help   #usage: list all subcomand
-  kubectl exec <pod-name> -- /agnhost dns-suffix
-  kubectl exec <pod-name> -- /agnhost dns-server-list
-  
-  ```
-  ```
-  kubectl create deployment my-nginx --image=nginx
-  kubectl expose deployment my-nginx --port=80 --target-port=8080
-  kubectl exec hello-node-78b9f44d96-qszq7 -- /agnhost connect  10.244.0.25:80
-  ```
-
+ 
 
 
 
