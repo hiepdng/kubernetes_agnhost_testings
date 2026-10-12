@@ -574,6 +574,52 @@ liveness                              Starts a server that is alive for 10 secon
   $ kubectl exec client-pod -- curl -s  "http://10.244.0.114:8080/shell?cmd=whoami"
   {"output":"root\n"}
   ```
+<br>
+
+- **nettest:**  Starts a tiny web server for checking networking connectivity
+  A tiny web server for checking networking connectivity.   
+  - Create and run test-agnhost pod and client-pod pod:  
+  ```python
+  $ kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  $ kubectl run client-pod --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+
+  $ kubectl get all -o wide
+  NAME               READY   STATUS    RESTARTS   AGE     IP             NODE       NOMINATED NODE   READINESS GATES
+  pod/client-pod     1/1     Running   0          4s      10.244.0.118   minikube   <none>           <none>
+  pod/test-agnhost   1/1     Running   0          4m40s   10.244.0.117   minikube   <none>           <none>
+  ```
+  - Start the nettest Server: listening on port 8888
+  ```bash
+  kubectl exec test-agnhost -- /agnhost nettest --port 8888
+  ```
+  - Testing connectivity:
+  ```python
+  $ kubectl exec client-pod -- curl -sG "http://10.244.0.117:8888/read"
+  {
+          "Hostname": "test-agnhost",
+          "Sent": null,
+          "Received": null,
+          "Errors": [
+                  "EOF",
+                  "test-agnhost: Got request with no source"
+          ],
+          "Log": [
+                  "default/nettest has 0 endpoints ([]), which is less than 8 as expected. Waiting for all endpoints to come up.",
+                  "default/nettest has 0 endpoints ([]), which is less than 8 as expected. Waiting for all endpoints to come up.",
+                  "default/nettest has 0 endpoints ([]), which is less than 8 as expected. Waiting for all endpoints to come up."
+          ],
+          "StillContactingPeers": true
+
+
+  $ kubectl exec test-agnhost -- curl -s http://localhost:8888/status
+  running
+
+
+  $ kubectl exec client-pod -- curl -sG "http://10.244.0.117:8080/write"
+  {"Hostname":"test-agnhost"}
+  ```
+
+
 
 
 
