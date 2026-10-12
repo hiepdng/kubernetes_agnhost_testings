@@ -3,6 +3,9 @@
 
 <br>
 
+ Agnhost (a play on "host agnostic") is a multi-platform CLI tool and container image maintained by Kubernetes (registry.k8s.io/e2e-test-images/agnhost) used primarily for end-to-end (e2e) testing and debugging across Linux and Windows environments. The examples below are based on 
+ [Kubernets Instruction](https://github.com/kubernetes/kubernetes/blob/master/test/images/agnhost/README.md).
+ 
 - #### Start your Minikube cluster:
   ```
   minikube star --driver=docker
@@ -445,10 +448,21 @@ liveness                              Starts a server that is alive for 10 secon
 <br>
 
 - **net:** Creates webserver or runner for various networking tests  
+  The goal of this Go project is to consolidate all low-level network testing "daemons" into one place. In network testing we frequently have need of simple daemons (common/Runner) that perform some "trivial" set of actions on a socket.  
+  
   - Create and run test-agnhost pod:  
   ```bash
   kubectl run test-agnhost --image=registry.k8s.io/e2e-test-images/agnhost:2.53
+  ```
+  - Runners can be executed into two different ways, either through the command-line or via an HTTP request:
+    - Command-line:
+  ```bash
+  $ kubectl exec test-agnhost -- /agnhost net --runner <runner> --options <json>
 
+  $ kubectl exec test-agnhost -- /agnhost net \
+        --runner nat-closewait-client \
+        --options '{"RemoteAddr":"127.0.0.1:9999"}'
+  ```
 
 
 
